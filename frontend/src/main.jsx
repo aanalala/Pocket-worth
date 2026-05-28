@@ -3,6 +3,10 @@ import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
 import './index.css'
 import { initFirebase } from './firebase'
+import { registerSW } from 'virtual:pwa-register'
+
+// Register the PWA service worker for background caching and offline capability
+registerSW({ immediate: true })
 
 /**
  * PRODUCTION BOOTSTRAP
