@@ -6,7 +6,7 @@ import { SegmentedControl } from "../components/SegmentedControl";
 import { InputField } from "../components/InputField";
 import { FeaturePill } from "../components/FeaturePill";
 import { auth, db } from "../firebase";
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, signInAnonymously } from "firebase/auth";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 
 export function AuthScreen({ mode = "signin" }) {
@@ -46,11 +46,9 @@ export function AuthScreen({ mode = "signin" }) {
             balance: 0,
             income: 0,
             expenses: 0,
-            createdAt: serverTimestamp(),
+            isDarkMode: false,
             currency: "USD",
-            preferences: {
-              darkMode: false,
-            }
+            createdAt: serverTimestamp(),
           });
           console.log("🔥 Firestore profile initialized for:", user.uid);
         }
@@ -86,6 +84,20 @@ export function AuthScreen({ mode = "signin" }) {
     }
   };
 
+  const handleGuest = async () => {
+    setLoading(true);
+    try {
+      await signInAnonymously(auth);
+      console.log("🔥 Signed in as Guest");
+    } catch (err) {
+      console.error("Guest auth error:", err);
+      setError("Guest login failed.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
   return (
     <PhoneShell>
       <div className="flex min-h-[860px] flex-col px-6 pb-8 pt-14 font-sans">
@@ -93,7 +105,7 @@ export function AuthScreen({ mode = "signin" }) {
           <AppLogo />
         </div>
 
-        <div className="rounded-[2.5rem] border border-slate-200/60 bg-white/80 p-5 shadow-2xl shadow-slate-200/50 backdrop-blur-xl">
+        <div className="rounded-[2.5rem] border border-slate-200 bg-white p-5 shadow-2xl shadow-slate-200/50">
           <SegmentedControl
             value={tab}
             onChange={(value) => {
@@ -187,11 +199,12 @@ export function AuthScreen({ mode = "signin" }) {
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-slate-100"></div>
               </div>
-              <span className="relative z-10 bg-white/80 px-4 text-xs font-bold uppercase tracking-widest text-slate-400">or</span>
+              <span className="relative z-10 bg-white px-4 text-xs font-bold uppercase tracking-widest text-slate-400">or</span>
             </div>
 
             <button 
               type="button"
+              onClick={handleGuest}
               className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-4 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50 transition-colors"
             >
               Continue as Guest

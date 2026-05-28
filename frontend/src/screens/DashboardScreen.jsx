@@ -55,11 +55,11 @@ export function DashboardScreen({ setActiveScreen }) {
           value={formatMoney(balance, currency)}
           footer={
             <div className="grid grid-cols-2 gap-3 text-sm">
-              <div className="rounded-2xl bg-white/10 p-4 backdrop-blur-md">
+              <div className="rounded-2xl bg-blue-800/40 p-4">
                 <p className="text-blue-100 font-bold uppercase text-[10px] tracking-widest">Income</p>
                 <p className="mt-1 text-lg font-black tracking-tight">{formatMoney(income, currency)}</p>
               </div>
-              <div className="rounded-2xl bg-white/10 p-4 backdrop-blur-md">
+              <div className="rounded-2xl bg-blue-800/40 p-4">
                 <p className="text-blue-100 font-bold uppercase text-[10px] tracking-widest">Expenses</p>
                 <p className="mt-1 text-lg font-black tracking-tight">{formatMoney(expenses, currency)}</p>
               </div>
@@ -72,8 +72,39 @@ export function DashboardScreen({ setActiveScreen }) {
           <div className="grid grid-cols-2 gap-4">
             <QuickAction icon={<TrendingUp className="h-6 w-6" />} title="Add Income" tone="blue" dark={dark} onClick={() => setActiveScreen("income")} />
             <QuickAction icon={<TrendingDown className="h-6 w-6" />} title="Add Expense" tone="red" dark={dark} onClick={() => setActiveScreen("expense")} />
-            <QuickAction icon={<Plus className="h-6 w-6" />} title="Set Goal" tone="yellow" dark={dark} onClick={() => setActiveScreen("goals")} />
-            <QuickAction icon={<Sparkles className="h-6 w-6" />} title="View Insights" tone="slate" dark={dark} onClick={() => setActiveScreen("insights")} />
+            <QuickAction icon={<Sparkles className="h-6 w-6" />} title="AI Advisor" tone="slate" dark={dark} onClick={() => setActiveScreen("chatbot")} />
+            <QuickAction icon={<LayoutGrid className="h-6 w-6" />} title="Calendar" tone="indigo" dark={dark} onClick={() => setActiveScreen("calendar")} />
+            <QuickAction icon={<div className="text-xl">📸</div>} title="Scan Receipt" tone="yellow" dark={dark} onClick={() => setActiveScreen("ocr")} />
+          </div>
+        </div>
+
+        <div className="mt-8 grid grid-cols-2 gap-4">
+          <div 
+            onClick={() => setActiveScreen("subscriptions")}
+            className={cn(
+              "flex flex-col rounded-[2rem] border p-6 cursor-pointer transition-all hover:scale-105 active:scale-95 shadow-sm",
+              dark ? "bg-slate-800 border-slate-700" : "bg-white border-slate-100"
+            )}
+          >
+            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600">
+              <div className="text-xl">💳</div>
+            </div>
+            <p className={cn("text-xs font-black uppercase tracking-widest", dark ? "text-slate-400" : "text-slate-500")}>Subscriptions</p>
+            <p className={cn("mt-1 text-lg font-black tracking-tight", dark ? "text-white" : "text-slate-900")}>Manage</p>
+          </div>
+
+          <div 
+            onClick={() => setActiveScreen("bills")}
+            className={cn(
+              "flex flex-col rounded-[2rem] border p-6 cursor-pointer transition-all hover:scale-105 active:scale-95 shadow-sm",
+              dark ? "bg-slate-800 border-slate-700" : "bg-white border-slate-100"
+            )}
+          >
+            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-50 text-amber-600">
+              <div className="text-xl">📅</div>
+            </div>
+            <p className={cn("text-xs font-black uppercase tracking-widest", dark ? "text-slate-400" : "text-slate-500")}>Bill Reminders</p>
+            <p className={cn("mt-1 text-lg font-black tracking-tight", dark ? "text-white" : "text-slate-900")}>Track</p>
           </div>
         </div>
 
@@ -81,9 +112,9 @@ export function DashboardScreen({ setActiveScreen }) {
           {/* Spending by Category */}
           <SectionCard 
             title="Spending Distribution" 
-            action="Details →" 
+            action="Budgets →" 
             dark={dark} 
-            onActionClick={() => setActiveScreen("categories")}
+            onActionClick={() => setActiveScreen("budgets")}
           >
             {hasTransactions ? (
               <>
@@ -107,7 +138,7 @@ export function DashboardScreen({ setActiveScreen }) {
                   {spendingData.slice(0, 4).map((item, index) => (
                     <div key={index} className={cn(
                       "rounded-2xl border p-4 transition-all duration-300", 
-                      dark ? "bg-slate-800/40 border-slate-700/50" : "bg-slate-50 border-slate-100"
+                    dark ? "bg-slate-800 border-slate-700" : "bg-slate-50 border-slate-100"
                     )}>
                       <div className="flex items-center gap-2 mb-1">
                         <div className="h-2 w-2 rounded-full" style={{ backgroundColor: item.color }} />
@@ -121,7 +152,7 @@ export function DashboardScreen({ setActiveScreen }) {
             ) : (
               <div className={cn(
                 "flex flex-col items-center justify-center h-64 rounded-[2.5rem] border-2 border-dashed",
-                dark ? "bg-white/5 border-white/5" : "bg-slate-50 border-slate-200"
+                dark ? "bg-slate-900 border-slate-800" : "bg-slate-50 border-slate-200"
               )}>
                 <PieIcon className="h-10 w-10 text-slate-300 mb-4" />
                 <p className={cn("text-sm font-black uppercase tracking-widest", dark ? "text-white/40" : "text-slate-500")}>No spending data yet</p>

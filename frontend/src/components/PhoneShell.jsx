@@ -9,7 +9,7 @@ export function PhoneShell({ children, dark = false }) {
     )}>
       <div
         className={cn(
-          "min-h-[860px] w-full transition-colors duration-700",
+          "h-[860px] w-full overflow-y-auto transition-colors duration-700 scrollbar-hide",
           dark ? "bg-[#0f172a] text-slate-100" : "bg-white text-slate-900"
         )}
       >

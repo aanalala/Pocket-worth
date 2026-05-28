@@ -4,25 +4,31 @@ import { PhoneShell } from "../components/PhoneShell";
 import { Header } from "../components/Header";
 import { SegmentedControl } from "../components/SegmentedControl";
 import { InputField } from "../components/InputField";
-import { cn } from "../utils/utils";
+import { cn, getLocalDateStr } from "../utils/utils";
 import { auth, db } from "../firebase";
 import { collection, addDoc, doc, setDoc, increment, serverTimestamp } from "firebase/firestore";
 import { useUserData } from "../hooks/useUserData";
 
-export function AddTransactionScreen({ type: initialType = "expense", setActiveScreen, dark: propDark }) {
+export function AddTransactionScreen({ type: initialType = "expense", setActiveScreen, dark: propDark, navParams, setNavParams }) {
   const { userData } = useUserData();
   const dark = propDark || userData?.isDarkMode || false;
-  const [type, setType] = useState(initialType);
+  
+  const editMode = navParams?.editMode || false;
+  const transaction = navParams?.transaction || null;
+  const defaultDate = navParams?.defaultDate || getLocalDateStr(new Date());
+
+  const [type, setType] = useState(transaction?.type || initialType);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const isIncome = type === "income";
   
   // Form State
-  const [amount, setAmount] = useState("");
-  const [category, setCategory] = useState("");
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-  const [notes, setNotes] = useState("");
-  const [isRecurring, setIsRecurring] = useState(false);
+  const [amount, setAmount] = useState(transaction?.amount ? String(transaction.amount) : "");
+  const [category, setCategory] = useState(transaction?.category || "");
+  const [date, setDate] = useState(transaction?.date || defaultDate);
+  const [notes, setNotes] = useState(transaction?.notes || "");
+  const [isRecurring, setIsRecurring] = useState(transaction?.isRecurring || false);
+
 
   const categories = isIncome
     ? ["Salary", "Freelance", "Investment", "Gift", "Other"]
@@ -47,27 +53,64 @@ export function AddTransactionScreen({ type: initialType = "expense", setActiveS
 
       const numericAmount = parseFloat(amount);
 
-      // 1. Log the transaction in the user's sub-collection
-      await addDoc(collection(db, "users", user.uid, "transactions"), {
-        type,
-        amount: numericAmount,
-        category,
-        date,
-        notes,
-        isRecurring,
-        createdAt: serverTimestamp(),
-      });
+      if (editMode && transaction) {
+        const transRef = doc(db, "users", user.uid, "transactions", transaction.id);
+        await setDoc(transRef, {
+          type,
+          amount: numericAmount,
+          category,
+          date,
+          notes,
+          isRecurring,
+          lastUpdated: serverTimestamp()
+        }, { merge: true });
 
-      // 2. Atomically update the user's overall balance and totals
-      const userRef = doc(db, "users", user.uid);
-      await setDoc(userRef, {
-        balance: isIncome ? increment(numericAmount) : increment(-numericAmount),
-        income: isIncome ? increment(numericAmount) : increment(0),
-        expenses: isIncome ? increment(0) : increment(numericAmount),
-        lastUpdated: serverTimestamp()
-      }, { merge: true });
+        const oldAmount = transaction.amount;
+        const oldType = transaction.type;
+        const oldIsIncome = oldType === "income";
+        
+        let balanceDiff = 0;
+        let incomeDiff = 0;
+        let expensesDiff = 0;
+
+        balanceDiff -= (oldIsIncome ? oldAmount : -oldAmount);
+        incomeDiff -= (oldIsIncome ? oldAmount : 0);
+        expensesDiff -= (oldIsIncome ? 0 : oldAmount);
+
+        balanceDiff += (isIncome ? numericAmount : -numericAmount);
+        incomeDiff += (isIncome ? numericAmount : 0);
+        expensesDiff += (isIncome ? 0 : numericAmount);
+
+        const userRef = doc(db, "users", user.uid);
+        await setDoc(userRef, {
+          balance: increment(balanceDiff),
+          income: increment(incomeDiff),
+          expenses: increment(expensesDiff),
+          lastUpdated: serverTimestamp()
+        }, { merge: true });
+
+      } else {
+        await addDoc(collection(db, "users", user.uid, "transactions"), {
+          type,
+          amount: numericAmount,
+          category,
+          date,
+          notes,
+          isRecurring,
+          createdAt: serverTimestamp(),
+        });
+
+        const userRef = doc(db, "users", user.uid);
+        await setDoc(userRef, {
+          balance: isIncome ? increment(numericAmount) : increment(-numericAmount),
+          income: isIncome ? increment(numericAmount) : increment(0),
+          expenses: isIncome ? increment(0) : increment(numericAmount),
+          lastUpdated: serverTimestamp()
+        }, { merge: true });
+      }
 
       console.log("🔥 Transaction saved and totals updated!");
+      if (setNavParams) setNavParams({});
       setActiveScreen("dashboard");
     } catch (err) {
       console.error("Error adding transaction:", err);
@@ -84,15 +127,19 @@ export function AddTransactionScreen({ type: initialType = "expense", setActiveS
     GBP: "£",
     INR: "₹",
     JPY: "¥",
+    NPR: "Rs.",
   }[currency] || "$";
 
   return (
     <PhoneShell dark={dark}>
       <div className="px-5 pb-8 pt-8 font-sans">
         <Header 
-          title={isIncome ? "Add Income" : "Add Expense"} 
-          subtitle="Record new activity"
-          onBack={() => setActiveScreen("dashboard")} 
+          title={editMode ? "Edit Transaction" : (isIncome ? "Add Income" : "Add Expense")} 
+          subtitle={editMode ? "Update details" : "Record new activity"}
+          onBack={() => {
+            if (setNavParams) setNavParams({});
+            setActiveScreen("dashboard");
+          }} 
           dark={dark}
         />
 
@@ -241,7 +288,7 @@ export function AddTransactionScreen({ type: initialType = "expense", setActiveS
           >
             {loading ? <Loader2 className="h-7 w-7 animate-spin" /> : (
               <>
-                Confirm {isIncome ? "Income" : "Expense"}
+                {editMode ? "Update" : "Confirm"} {isIncome ? "Income" : "Expense"}
                 <ArrowRight className="h-6 w-6 group-hover:translate-x-1 transition-transform" />
               </>
             )}

@@ -8,29 +8,36 @@ import { CategoriesScreen } from "./screens/CategoriesScreen";
 import { SavingsTrackerScreen } from "./screens/SavingsTrackerScreen";
 import { NetWorthScreen } from "./screens/NetWorthScreen";
 import { SettingsScreen } from "./screens/SettingsScreen";
+import { ReceiptScannerScreen } from "./screens/ReceiptScannerScreen";
+import { ChatbotScreen } from "./screens/ChatbotScreen";
+import { SubscriptionTrackerScreen } from "./screens/SubscriptionTrackerScreen";
+import { BillReminderScreen } from "./screens/BillReminderScreen";
+import { BudgetGoalsScreen } from "./screens/BudgetGoalsScreen";
+import { CalendarScreen } from "./screens/CalendarScreen";
 import { auth } from "./firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import { useUserData } from "./hooks/useUserData";
-import { cn } from "./utils/utils";
-
 export default function App() {
   const [activeScreen, setActiveScreen] = useState("signin");
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [navParams, setNavParams] = useState({});
+
   
   // Fetch global user settings
-  const { userData, loading: dataLoading } = useUserData();
+  const { userData } = useUserData();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       setAuthLoading(false);
-      if (currentUser && (activeScreen === "signin" || activeScreen === "signup")) {
-        setActiveScreen("dashboard");
+      if (currentUser) {
+        setActiveScreen((prev) => (prev === "signin" || prev === "signup" ? "dashboard" : prev));
       }
     });
     return () => unsubscribe();
-  }, [activeScreen]);
+  }, []);
+
 
   const dark = userData?.isDarkMode || false;
 
@@ -50,34 +57,45 @@ export default function App() {
 
     switch (activeScreen) {
       case "dashboard":
-        return <DashboardScreen setActiveScreen={setActiveScreen} />;
+        return <DashboardScreen setActiveScreen={setActiveScreen} dark={dark} />;
       case "income":
-        return <AddTransactionScreen type="income" setActiveScreen={setActiveScreen} dark={dark} />;
+        return <AddTransactionScreen type="income" setActiveScreen={setActiveScreen} dark={dark} navParams={navParams} setNavParams={setNavParams} />;
       case "expense":
-        return <AddTransactionScreen type="expense" setActiveScreen={setActiveScreen} dark={dark} />;
+        return <AddTransactionScreen type="expense" setActiveScreen={setActiveScreen} dark={dark} navParams={navParams} setNavParams={setNavParams} />;
       case "goals":
-        return <SavingsGoalsScreen setActiveScreen={setActiveScreen} />;
+        return <SavingsGoalsScreen setActiveScreen={setActiveScreen} dark={dark} />;
       case "insights":
-        return <InsightsScreen setActiveScreen={setActiveScreen} />;
+        return <InsightsScreen setActiveScreen={setActiveScreen} dark={dark} />;
+      case "budgets":
       case "categories":
-        return <CategoriesScreen setActiveScreen={setActiveScreen} />;
+        return <BudgetGoalsScreen setActiveScreen={setActiveScreen} dark={dark} />;
       case "savings":
-        return <SavingsTrackerScreen setActiveScreen={setActiveScreen} />;
+        return <SavingsTrackerScreen setActiveScreen={setActiveScreen} dark={dark} />;
       case "networth":
-        return <NetWorthScreen setActiveScreen={setActiveScreen} />;
+        return <NetWorthScreen setActiveScreen={setActiveScreen} dark={dark} />;
+      case "ocr":
+        return <ReceiptScannerScreen setActiveScreen={setActiveScreen} dark={dark} navParams={navParams} setNavParams={setNavParams} />;
+      case "chatbot":
+        return <ChatbotScreen setActiveScreen={setActiveScreen} dark={dark} />;
+      case "subscriptions":
+        return <SubscriptionTrackerScreen setActiveScreen={setActiveScreen} dark={dark} />;
+      case "bills":
+        return <BillReminderScreen setActiveScreen={setActiveScreen} dark={dark} />;
+      case "calendar":
+        return <CalendarScreen setActiveScreen={setActiveScreen} dark={dark} navParams={navParams} setNavParams={setNavParams} />;
       case "settings":
       case "settingsLight":
       case "settingsDark":
-        return <SettingsScreen setActiveScreen={setActiveScreen} />;
+        return <SettingsScreen setActiveScreen={setActiveScreen} dark={dark} />;
       default:
-        return <DashboardScreen setActiveScreen={setActiveScreen} />;
+        return <DashboardScreen setActiveScreen={setActiveScreen} dark={dark} />;
     }
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 sm:p-8 md:p-12 font-sans text-slate-900 bg-slate-100/50">
       <div className="w-full max-w-lg flex flex-col items-center">
-        <div className="w-full flex justify-center transform transition-all hover:scale-[1.002] active:scale-100">
+        <div className="w-full flex justify-center">
           {renderScreen()}
         </div>
       </div>

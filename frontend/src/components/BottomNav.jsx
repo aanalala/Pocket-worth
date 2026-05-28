@@ -9,7 +9,7 @@ export function PieChartIcon(props) {
 export function BottomNav({ active, setActiveScreen, dark = false }) {
   const items = [
     { key: "dashboard", label: "Home", icon: Home },
-    { key: "categories", label: "Budgets", icon: PieChartIcon },
+    { key: "budgets", label: "Budgets", icon: PieChartIcon },
     { key: "savings", label: "Savings", icon: TrendingUp },
     { key: "networth", label: "Net Worth", icon: Wallet },
     { key: "settings", label: "Settings", icon: Settings },
@@ -17,8 +17,8 @@ export function BottomNav({ active, setActiveScreen, dark = false }) {
 
   return (
     <div className={cn(
-      "sticky bottom-0 mx-[-20px] mt-8 grid grid-cols-5 border-t px-2 py-4 backdrop-blur-2xl transition-all duration-300 z-50",
-      dark ? "border-white/5 bg-slate-950/80 shadow-black/40" : "border-slate-100 bg-white/90 shadow-slate-100/50 shadow-[0_-2px_20px_rgba(0,0,0,0.02)]"
+      "sticky bottom-0 mx-[-20px] mt-8 grid grid-cols-5 border-t px-2 py-4 transition-all duration-300 z-50",
+      dark ? "border-slate-800 bg-slate-950 shadow-black/40" : "border-slate-100 bg-white shadow-slate-100/50 shadow-[0_-2px_20px_rgba(0,0,0,0.02)]"
     )}>
       {items.map((item) => {
         const Icon = item.icon;

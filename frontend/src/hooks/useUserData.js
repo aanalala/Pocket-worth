@@ -7,8 +7,11 @@ export function useUserData() {
   const [userData, setUserData] = useState(null);
   const [transactions, setTransactions] = useState([]);
   const [goals, setGoals] = useState([]);
+  const [subscriptions, setSubscriptions] = useState([]);
+  const [bills, setBills] = useState([]);
+  const [budgets, setBudgets] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+
 
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
@@ -23,6 +26,21 @@ export function useUserData() {
               setDoc(userDocRef, { isDarkMode: false, currency: "USD" }, { merge: true });
             }
             setUserData(data);
+          } else {
+            // New user (Guest or first login) - Initialize with 0 values
+            const initialData = {
+              uid: user.uid,
+              email: user.email || "Guest",
+              displayName: user.displayName || "Guest User",
+              balance: 0,
+              income: 0,
+              expenses: 0,
+              isDarkMode: false,
+              currency: "USD",
+              createdAt: new Date().toISOString()
+            };
+            setDoc(userDocRef, initialData);
+            setUserData(initialData);
           }
         }, (err) => console.error("User sync error:", err));
 
@@ -39,9 +57,30 @@ export function useUserData() {
         const unsubscribeGoals = onSnapshot(goalsRef, (querySnap) => {
           const goalsList = querySnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
           setGoals(goalsList);
+        }, (err) => console.error("Goals sync error:", err));
+
+        // 4. Subscriptions Sync
+        const subsRef = collection(db, "users", user.uid, "subscriptions");
+        const unsubscribeSubs = onSnapshot(subsRef, (querySnap) => {
+          const subsList = querySnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          setSubscriptions(subsList);
+        }, (err) => console.error("Subs sync error:", err));
+
+        // 5. Bills Sync
+        const billsRef = collection(db, "users", user.uid, "bills");
+        const unsubscribeBills = onSnapshot(billsRef, (querySnap) => {
+          const billsList = querySnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          setBills(billsList);
+        }, (err) => console.error("Bills sync error:", err));
+
+        // 6. Budgets Sync
+        const budgetsRef = collection(db, "users", user.uid, "budgets");
+        const unsubscribeBudgets = onSnapshot(budgetsRef, (querySnap) => {
+          const budgetsList = querySnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          setBudgets(budgetsList);
           setLoading(false);
         }, (err) => {
-          console.error("Goals sync error:", err);
+          console.error("Budgets sync error:", err);
           setLoading(false);
         });
 
@@ -49,11 +88,17 @@ export function useUserData() {
           unsubscribeUser();
           unsubscribeTrans();
           unsubscribeGoals();
+          unsubscribeSubs();
+          unsubscribeBills();
+          unsubscribeBudgets();
         };
       } else {
         setUserData(null);
         setTransactions([]);
         setGoals([]);
+        setSubscriptions([]);
+        setBills([]);
+        setBudgets([]);
         setLoading(false);
       }
     });
@@ -61,5 +106,6 @@ export function useUserData() {
     return () => unsubscribeAuth();
   }, []);
 
-  return { userData, transactions, goals, loading, error };
+  return { userData, transactions, goals, subscriptions, bills, budgets, loading };
 }
+

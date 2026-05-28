@@ -6,8 +6,9 @@ import { BottomNav, PieChartIcon } from "../components/BottomNav";
 import { cn } from "../utils/utils";
 import { auth, db } from "../firebase";
 import { signOut } from "firebase/auth";
-import { doc, updateDoc } from "firebase/firestore";
+import { doc, setDoc } from "firebase/firestore";
 import { useUserData } from "../hooks/useUserData";
+
 
 export function SettingsRow({ icon, title, value, trailing, onClick, dark = false }) {
   return (
@@ -54,17 +55,18 @@ export function SettingsScreen({ setActiveScreen }) {
   const toggleDarkMode = async () => {
     if (!auth.currentUser) return;
     const userRef = doc(db, "users", auth.currentUser.uid);
-    await updateDoc(userRef, { isDarkMode: !dark });
+    await setDoc(userRef, { isDarkMode: !dark }, { merge: true });
   };
 
   const updateCurrency = async (code) => {
     if (!auth.currentUser) return;
     const userRef = doc(db, "users", auth.currentUser.uid);
-    await updateDoc(userRef, { currency: code });
+    await setDoc(userRef, { currency: code }, { merge: true });
     setShowCurrencyModal(false);
   };
 
   const currencies = [
+    { code: "NPR", symbol: "Rs.", name: "Nepalese Rupee" },
     { code: "USD", symbol: "$", name: "US Dollar" },
     { code: "EUR", symbol: "€", name: "Euro" },
     { code: "GBP", symbol: "£", name: "British Pound" },
@@ -177,7 +179,7 @@ export function SettingsScreen({ setActiveScreen }) {
           </div>
         </div>
 
-        <BottomNav active="settings" setActiveScreen={setActiveScreen} />
+        <BottomNav active="settings" setActiveScreen={setActiveScreen} dark={dark} />
       </div>
     </PhoneShell>
   );
