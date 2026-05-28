@@ -334,6 +334,6 @@ app.get("/api/export/pdf", async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(` Pocket Worth Backend running on http://localhost:${PORT}`);
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(` Pocket Worth Backend running on http://0.0.0.0:${PORT}`);
 });

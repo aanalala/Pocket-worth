@@ -11,8 +11,9 @@ let auth;
  * Fetches the public Firebase configuration from the backend API.
  * This ensures no keys are hardcoded in the frontend build.
  */
-const hostname = typeof window !== "undefined" && window.location.hostname ? window.location.hostname : "localhost";
-export const API_URL = import.meta.env.VITE_API_URL || `http://${hostname}:5000`;
+const hostname = typeof window !== "undefined" && window.location.hostname ? window.location.hostname : "127.0.0.1";
+const resolvedHost = hostname === "localhost" ? "127.0.0.1" : hostname;
+export const API_URL = import.meta.env.VITE_API_URL || `http://${resolvedHost}:5000`;
 
 export async function initFirebase() {
   if (app) return { app, db, auth };
