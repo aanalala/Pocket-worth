@@ -3,7 +3,7 @@ import { Send, Loader2, User, Sparkles, MessageCircle, ArrowLeft, Bot } from "lu
 import { PhoneShell } from "../components/PhoneShell";
 import { Header } from "../components/Header";
 import { cn } from "../utils/utils";
-import { auth } from "../firebase";
+import { auth, API_URL } from "../firebase";
 import { useUserData } from "../hooks/useUserData";
 
 export function ChatbotScreen({ setActiveScreen, dark = false }) {
@@ -31,7 +31,7 @@ export function ChatbotScreen({ setActiveScreen, dark = false }) {
     setLoading(true);
 
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
+      const apiUrl = API_URL;
       const token = await auth.currentUser?.getIdToken();
       
       const response = await fetch(`${apiUrl}/api/ai/chat`, {

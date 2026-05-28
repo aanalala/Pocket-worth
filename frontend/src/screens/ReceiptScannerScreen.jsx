@@ -4,7 +4,7 @@ import Tesseract from "tesseract.js";
 import { PhoneShell } from "../components/PhoneShell";
 import { Header } from "../components/Header";
 import { cn, getLocalDateStr } from "../utils/utils";
-import { auth, db } from "../firebase";
+import { auth, db, API_URL } from "../firebase";
 import { collection, addDoc, doc, setDoc, increment, serverTimestamp } from "firebase/firestore";
 
 export function ReceiptScannerScreen({ setActiveScreen, dark = false, navParams, setNavParams }) {
@@ -106,7 +106,7 @@ export function ReceiptScannerScreen({ setActiveScreen, dark = false, navParams,
       setStatus("AI Analysis in progress...");
 
       // 2. AI Parsing via Backend
-      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
+      const apiUrl = API_URL;
       const token = await auth.currentUser?.getIdToken();
       
       const response = await fetch(`${apiUrl}/api/ai/parse-receipt`, {
