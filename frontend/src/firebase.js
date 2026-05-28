@@ -12,8 +12,14 @@ let auth;
  * This ensures no keys are hardcoded in the frontend build.
  */
 const hostname = typeof window !== "undefined" && window.location.hostname ? window.location.hostname : "127.0.0.1";
-const resolvedHost = hostname === "localhost" ? "127.0.0.1" : hostname;
-export const API_URL = import.meta.env.VITE_API_URL || `http://${resolvedHost}:5000`;
+const isLocal = hostname === "localhost" || hostname === "127.0.0.1";
+
+let resolvedApiUrl = import.meta.env.VITE_API_URL || `http://127.0.0.1:5000`;
+if (!isLocal && (resolvedApiUrl.includes("localhost") || resolvedApiUrl.includes("127.0.0.1"))) {
+  resolvedApiUrl = "https://pocket-worth-production.up.railway.app";
+}
+
+export const API_URL = resolvedApiUrl;
 
 export async function initFirebase() {
   if (app) return { app, db, auth };
