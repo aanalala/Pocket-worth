@@ -45,7 +45,7 @@ coverage
 next-env.d.ts
 
 # Firebase Admin SDK
-pcwo-eaf77-firebase-adminsdk-fbsvc-3f3157bc61.json
+*firebase-adminsdk*.json
 
 # dataconnect generated files
 .dataconnect
