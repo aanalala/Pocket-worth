@@ -1,15 +1,38 @@
-import React, { useState, useMemo } from "react";
-import { ChevronLeft, ChevronRight, ArrowLeft, Calendar as CalendarIcon, DollarSign, Bell, Plus, Trash2, Edit2 } from "lucide-react";
+import React, { useState, useMemo, useEffect } from "react";
+import { ChevronLeft, ChevronRight, ArrowLeft, Calendar as CalendarIcon, DollarSign, Bell, Plus, Trash2, Edit2, RefreshCw } from "lucide-react";
 import { PhoneShell } from "../components/PhoneShell";
 import { Header } from "../components/Header";
-import { cn, getLocalDateStr } from "../utils/utils";
+import { cn, getLocalDateStr, formatMoney } from "../utils/utils";
 import { useUserData } from "../hooks/useUserData";
 import { auth, db } from "../firebase";
 import { doc, deleteDoc, setDoc, increment, serverTimestamp } from "firebase/firestore";
 
 export function CalendarScreen({ setActiveScreen, dark = false, navParams, setNavParams }) {
-  const { transactions, bills } = useUserData();
+  const { userData, transactions, bills } = useUserData();
   const [currentDate, setCurrentDate] = useState(new Date());
+  
+  const userCurrency = userData?.currency || "NPR";
+  const [timelineCurrency, setTimelineCurrency] = useState(userCurrency);
+  const [rates, setRates] = useState({ USD: 1.0, NPR: 133.50, EUR: 0.92, INR: 83.35, GBP: 0.79, JPY: 156.40 });
+
+  // Sync state timelineCurrency when user base currency updates
+  useEffect(() => {
+    if (userData?.currency) {
+      setTimelineCurrency(userData.currency);
+    }
+  }, [userData?.currency]);
+
+  useEffect(() => {
+    import("../utils/currencyService").then(({ fetchExchangeRates }) => {
+      fetchExchangeRates().then(setRates);
+    });
+  }, []);
+
+  const convertSync = (amount, fromCode, toCode) => {
+    if (fromCode === toCode) return amount;
+    const amountInUSD = amount / (rates[fromCode] || 1);
+    return amountInUSD * (rates[toCode] || 1);
+  };
 
   const handleDeleteTransaction = async (t) => {
     if (!window.confirm("Are you sure you want to delete this transaction?")) return;
@@ -148,12 +171,31 @@ export function CalendarScreen({ setActiveScreen, dark = false, navParams, setNa
 
           {/* Details for selected date */}
           <div className="mt-8 space-y-4">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
               <h4 className={cn("text-xs font-black uppercase tracking-widest text-slate-400 ml-2")}>
                 {selectedDate ? `Activities for ${selectedDate.day} ${monthName}` : "Select a date"}
               </h4>
               {selectedDate && (
-                <div className="flex gap-2">
+                <div className="flex items-center gap-1 rounded-2xl bg-slate-100 dark:bg-slate-800 p-0.5 text-[9px] font-black border border-slate-200 dark:border-slate-700/50 shadow-inner mr-2 select-none">
+                  {["NPR", "USD", "EUR", "INR"].map(cur => (
+                    <button
+                      key={cur}
+                      onClick={() => setTimelineCurrency(cur)}
+                      type="button"
+                      className={cn(
+                        "px-2 py-0.5 rounded-lg transition-all",
+                        timelineCurrency === cur 
+                          ? "bg-blue-600 text-white shadow-sm" 
+                          : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+                      )}
+                    >
+                      {cur}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {selectedDate && (
+                <div className="flex gap-2 ml-auto sm:ml-0">
                   <button onClick={() => {
                     setNavParams({ defaultDate: selectedDate.date });
                     setActiveScreen("expense");
@@ -196,8 +238,8 @@ export function CalendarScreen({ setActiveScreen, dark = false, navParams, setNa
                       </div>
                     </div>
                     <div className="flex flex-col items-end gap-2">
-                      <p className={cn("font-black", t.type === "income" ? "text-green-500" : "text-red-500")}>
-                        {t.type === "income" ? "+" : "-"}${t.amount}
+                      <p className={cn("font-black text-sm", t.type === "income" ? "text-green-500" : "text-red-500")}>
+                        {t.type === "income" ? "+" : "-"}{formatMoney(convertSync(t.amount, userCurrency, timelineCurrency), timelineCurrency)}
                       </p>
                       <div className="flex gap-2">
                         <button onClick={() => {
@@ -228,7 +270,7 @@ export function CalendarScreen({ setActiveScreen, dark = false, navParams, setNa
                         <p className="text-[10px] font-bold text-red-400 uppercase tracking-widest">Bill Due</p>
                       </div>
                     </div>
-                    <p className="font-black text-red-600">-${b.amount}</p>
+                    <p className="font-black text-red-600">-{formatMoney(convertSync(b.amount, userCurrency, timelineCurrency), timelineCurrency)}</p>
                   </div>
                 ))}
               </div>

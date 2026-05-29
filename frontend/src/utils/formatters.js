@@ -1,4 +1,7 @@
 export function formatMoney(value, currencyCode = "USD") {
+  if (currencyCode === "NPR") {
+    return `Rs. ${Math.round(value).toLocaleString()}`;
+  }
   const formatter = new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: currencyCode,
@@ -8,6 +11,9 @@ export function formatMoney(value, currencyCode = "USD") {
 }
 
 export function currencyWithCents(value, currencyCode = "USD") {
+  if (currencyCode === "NPR") {
+    return `Rs. ${Number(value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  }
   const formatter = new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: currencyCode,

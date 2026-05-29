@@ -46,8 +46,8 @@ export function AuthScreen({ mode = "signin" }) {
             balance: 0,
             income: 0,
             expenses: 0,
-            isDarkMode: false,
-            currency: "USD",
+                        isDarkMode: false,
+            currency: "NPR",
             createdAt: serverTimestamp(),
           });
           console.log("🔥 Firestore profile initialized for:", user.uid);

@@ -8,12 +8,15 @@ import { formatMoney } from "../utils/utils";
 import { cn } from "../utils/utils";
 import { useUserData } from "../hooks/useUserData";
 import { auth, db } from "../firebase";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, doc, updateDoc, deleteDoc, increment, serverTimestamp } from "firebase/firestore";
 
 export function SavingsGoalsScreen({ setActiveScreen }) {
   const { userData, goals, loading } = useUserData();
   const [isAddingGoal, setIsAddingGoal] = useState(false);
   const [addingLoading, setAddingLoading] = useState(false);
+  const [selectedGoal, setSelectedGoal] = useState(null);
+  const [updateAmount, setUpdateAmount] = useState("");
+  const [isUpdating, setIsUpdating] = useState(false);
 
   // Form State
   const [name, setName] = useState("");
@@ -49,6 +52,40 @@ export function SavingsGoalsScreen({ setActiveScreen }) {
       console.error("Error creating goal:", err);
     } finally {
       setAddingLoading(false);
+    }
+  };
+
+  const handleUpdateGoal = async () => {
+    if (!selectedGoal || !updateAmount || parseFloat(updateAmount) <= 0) return;
+    setIsUpdating(true);
+    try {
+      const user = auth.currentUser;
+      const goalRef = doc(db, "users", user.uid, "goals", selectedGoal.id);
+      await updateDoc(goalRef, {
+        current: increment(parseFloat(updateAmount))
+      });
+      // Optimistically update the selected goal for the modal
+      setSelectedGoal({ ...selectedGoal, current: selectedGoal.current + parseFloat(updateAmount) });
+      setUpdateAmount("");
+    } catch (err) {
+      console.error("Error updating goal:", err);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleDeleteGoal = async () => {
+    if (!selectedGoal) return;
+    setIsUpdating(true);
+    try {
+      const user = auth.currentUser;
+      const goalRef = doc(db, "users", user.uid, "goals", selectedGoal.id);
+      await deleteDoc(goalRef);
+      setSelectedGoal(null);
+    } catch (err) {
+      console.error("Error deleting goal:", err);
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -157,7 +194,10 @@ export function SavingsGoalsScreen({ setActiveScreen }) {
                       <Calendar className={cn("h-4 w-4", dark ? "text-slate-600" : "text-slate-400")} />
                       <span className={cn("text-xs font-black uppercase tracking-widest", dark ? "text-slate-600" : "text-slate-500")}>{goal.deadline || 'Monthly Goal'}</span>
                     </div>
-                    <button className={cn("font-black text-xs uppercase tracking-widest flex items-center gap-2 group-hover:gap-3 transition-all", dark ? "text-blue-400" : "text-blue-600")}>
+                    <button 
+                      onClick={() => setSelectedGoal(goal)}
+                      className={cn("font-black text-xs uppercase tracking-widest flex items-center gap-2 group-hover:gap-3 transition-all", dark ? "text-blue-400" : "text-blue-600")}
+                    >
                       Details <ArrowRight className="h-4 w-4" />
                     </button>
                   </div>
@@ -260,8 +300,7 @@ export function SavingsGoalsScreen({ setActiveScreen }) {
                     <div className="relative">
                       <Calendar className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
                       <input 
-                        type="text" 
-                        placeholder="Oct 2024" 
+                        type="date" 
                         value={deadline}
                         onChange={(e) => setDeadline(e.target.value)}
                         className={cn(
@@ -300,6 +339,94 @@ export function SavingsGoalsScreen({ setActiveScreen }) {
                   )}
                 >
                   {addingLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : "Save New Goal"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Goal Details & Update Overlay */}
+        {selectedGoal && (
+          <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm transition-all duration-500 p-4 sm:p-0">
+            <div className={cn(
+              "w-full max-w-md animate-slide-up rounded-t-[3.5rem] p-8 shadow-2xl transition-all duration-500 border-t",
+              dark ? "bg-[#0f172a] border-white/5 shadow-black/80" : "bg-white border-slate-100 shadow-slate-200"
+            )}>
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-xl flex items-center justify-center text-white" style={{ backgroundColor: selectedGoal.color || '#3b82f6' }}>
+                    <Target className="h-5 w-5" />
+                  </div>
+                  <h3 className={cn("text-xl font-black tracking-tight", dark ? "text-white" : "text-slate-900")}>{selectedGoal.name}</h3>
+                </div>
+                <button 
+                  onClick={() => setSelectedGoal(null)}
+                  className={cn("h-10 w-10 rounded-full flex items-center justify-center transition-all", dark ? "bg-white/5 text-slate-400 hover:bg-white/10" : "bg-slate-50 text-slate-500 hover:bg-slate-100")}
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <div className="space-y-6">
+                <div className={cn(
+                   "rounded-[1.75rem] border p-5 shadow-sm text-center",
+                   dark ? "bg-slate-900 border-white/5 shadow-black" : "bg-white border-slate-100"
+                )}>
+                  <p className={cn("text-xs font-black uppercase tracking-widest mb-1", dark ? "text-slate-500" : "text-slate-400")}>Target Matched</p>
+                  <p className={cn("text-3xl font-black tracking-tight", dark ? "text-white" : "text-slate-900")}>
+                    {formatMoney(selectedGoal.current, currency)} 
+                    <span className="text-sm text-slate-400"> / {formatMoney(selectedGoal.target, currency)}</span>
+                  </p>
+                  <div className="mt-4 h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                    <div 
+                      className="h-full rounded-full transition-all duration-1000" 
+                      style={{ 
+                        width: `${Math.min(100, Math.round((selectedGoal.current / selectedGoal.target) * 100))}%`, 
+                        backgroundColor: selectedGoal.color || '#3b82f6' 
+                      }} 
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className={cn("text-xs font-black uppercase tracking-widest ml-1 mb-2 block", dark ? "text-slate-500" : "text-slate-400")}>Add Funds</label>
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                      <input 
+                        type="number" 
+                        placeholder="0.00" 
+                        value={updateAmount}
+                        onChange={(e) => setUpdateAmount(e.target.value)}
+                        className={cn(
+                          "w-full rounded-[1.5rem] border px-12 py-4 text-sm font-bold outline-none transition-all shadow-sm",
+                          dark ? "bg-white/5 border-white/5 text-white focus:border-blue-500/50" : "bg-slate-50 border-slate-100 text-slate-900 focus:border-blue-500/50"
+                        )}
+                      />
+                    </div>
+                    <button 
+                      onClick={handleUpdateGoal}
+                      disabled={isUpdating || !updateAmount}
+                      className={cn(
+                        "rounded-[1.5rem] px-6 text-sm font-black uppercase tracking-widest text-white shadow-xl transition-all hover:scale-[1.02] active:scale-100 flex items-center justify-center",
+                        dark ? "bg-blue-600 shadow-blue-900/40" : "bg-blue-600 shadow-blue-400/40",
+                        (isUpdating || !updateAmount) && "opacity-50"
+                      )}
+                    >
+                      {isUpdating ? <Loader2 className="h-5 w-5 animate-spin" /> : "Add"}
+                    </button>
+                  </div>
+                </div>
+
+                <button 
+                  onClick={handleDeleteGoal}
+                  disabled={isUpdating}
+                  className={cn(
+                    "w-full rounded-[2.25rem] px-8 py-4 text-sm font-black uppercase tracking-widest transition-all active:scale-95 border",
+                    dark ? "bg-red-500/10 text-red-400 border-red-500/20 hover:bg-red-500/20" : "bg-red-50 text-red-600 border-red-100/50 hover:bg-red-100"
+                  )}
+                >
+                  Delete Goal
                 </button>
               </div>
             </div>

@@ -39,9 +39,11 @@ export function SettingsRow({ icon, title, value, trailing, onClick, dark = fals
 export function SettingsScreen({ setActiveScreen }) {
   const { userData } = useUserData();
   const [showCurrencyModal, setShowCurrencyModal] = useState(false);
+  const [showDateModal, setShowDateModal] = useState(false);
   
   const dark = userData?.isDarkMode || false;
   const currentCurrency = userData?.currency || "USD";
+  const currentDateFormat = userData?.dateFormat || "MM/DD/YYYY";
 
   const handleSignOut = async () => {
     try {
@@ -65,6 +67,13 @@ export function SettingsScreen({ setActiveScreen }) {
     setShowCurrencyModal(false);
   };
 
+  const updateDateFormat = async (fmt) => {
+    if (!auth.currentUser) return;
+    const userRef = doc(db, "users", auth.currentUser.uid);
+    await setDoc(userRef, { dateFormat: fmt }, { merge: true });
+    setShowDateModal(false);
+  };
+
   const currencies = [
     { code: "NPR", symbol: "Rs.", name: "Nepalese Rupee" },
     { code: "USD", symbol: "$", name: "US Dollar" },
@@ -73,6 +82,8 @@ export function SettingsScreen({ setActiveScreen }) {
     { code: "INR", symbol: "₹", name: "Indian Rupee" },
     { code: "JPY", symbol: "¥", name: "Japanese Yen" },
   ];
+
+  const dateFormats = ["MM/DD/YYYY", "DD/MM/YYYY", "YYYY-MM-DD"];
 
   return (
     <PhoneShell dark={dark}>
@@ -141,14 +152,45 @@ export function SettingsScreen({ setActiveScreen }) {
                   </div>
                 )}
               </div>
-              <SettingsRow dark={dark} icon={<Calendar className="h-5 w-5" />} title="Date Format" value="MM/DD/YYYY" />
+              <div className="relative mt-2">
+                <SettingsRow 
+                  dark={dark} 
+                  icon={<Calendar className="h-5 w-5" />} 
+                  title="Date Format" 
+                  value={currentDateFormat} 
+                  onClick={() => setShowDateModal(!showDateModal)}
+                  trailing={<ChevronDown className={cn("h-5 w-5 transition-transform", showDateModal && "rotate-180", dark ? "text-slate-500" : "text-slate-400")} />}
+                />
+                
+                {showDateModal && (
+                  <div className={cn(
+                    "absolute top-full left-0 right-0 z-20 mt-2 overflow-hidden rounded-[2rem] border p-2 shadow-2xl animate-in fade-in slide-in-from-top-2 duration-300",
+                    dark ? "bg-slate-800 border-slate-700 shadow-black/60" : "bg-white border-slate-100 shadow-slate-200/50"
+                  )}>
+                    {dateFormats.map((fmt) => (
+                      <button
+                        key={fmt}
+                        onClick={() => updateDateFormat(fmt)}
+                        className={cn(
+                          "flex w-full items-center justify-between px-5 py-4 rounded-[1.5rem] transition-colors",
+                          currentDateFormat === fmt 
+                            ? (dark ? "bg-blue-600/20 text-blue-400" : "bg-blue-50 text-blue-600") 
+                            : (dark ? "text-slate-300 hover:bg-white/5" : "text-slate-600 hover:bg-slate-50")
+                        )}
+                      >
+                        <span className="font-bold text-sm">{fmt}</span>
+                        {currentDateFormat === fmt && <Check className="h-5 w-5" />}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </section>
 
           <section>
             <h3 className={cn("mb-4 px-1 text-xl font-bold tracking-tight", dark ? "text-slate-200" : "text-slate-800")}>Account</h3>
             <div className="space-y-4">
-              <SettingsRow dark={dark} icon={<CreditCard className="h-5 w-5" />} title="Premium Subscription" value="Manage plan" />
               <button 
                 onClick={handleSignOut}
                 className={cn(

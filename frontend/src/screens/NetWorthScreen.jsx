@@ -1,5 +1,5 @@
-import React from "react";
-import { Wallet, CreditCard, ArrowUpRight, TrendingUp, PieChart as PieChartIcon, Activity, Loader2, Sparkles, Plus } from "lucide-react";
+import React, { useState } from "react";
+import { Wallet, CreditCard, ArrowUpRight, TrendingUp, Activity, Loader2, Sparkles, Plus, X, DollarSign, Target } from "lucide-react";
 import { LineChart, CartesianGrid, XAxis, YAxis, Tooltip, Line, ResponsiveContainer, Area, AreaChart } from "recharts";
 import { PhoneShell } from "../components/PhoneShell";
 import { Header } from "../components/Header";
@@ -10,12 +10,42 @@ import { formatMoney } from "../utils/utils";
 import { cn } from "../utils/utils";
 import { useUserData } from "../hooks/useUserData";
 import { getNetWorthHistory } from "../utils/dataTransform";
+import { auth, db } from "../firebase";
+import { doc, updateDoc, arrayUnion } from "firebase/firestore";
 
 export function NetWorthScreen({ setActiveScreen }) {
   const { userData, transactions, loading } = useUserData();
+  const [isAddingDebt, setIsAddingDebt] = useState(false);
+  const [debtName, setDebtName] = useState("");
+  const [debtAmount, setDebtAmount] = useState("");
+  const [addingLoading, setAddingLoading] = useState(false);
 
   const dark = userData?.isDarkMode || false;
   const currency = userData?.currency || "USD";
+
+  const handleAddDebt = async () => {
+    if (!debtName || !debtAmount || parseFloat(debtAmount) <= 0) return;
+    setAddingLoading(true);
+    try {
+      const user = auth.currentUser;
+      if (!user) return;
+      const userRef = doc(db, "users", user.uid);
+      await updateDoc(userRef, {
+        debts: arrayUnion({
+          name: debtName,
+          amount: parseFloat(debtAmount),
+          date: new Date().toISOString()
+        })
+      });
+      setIsAddingDebt(false);
+      setDebtName("");
+      setDebtAmount("");
+    } catch (err) {
+      console.error("Error adding debt:", err);
+    } finally {
+      setAddingLoading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -42,10 +72,16 @@ export function NetWorthScreen({ setActiveScreen }) {
   ];
 
   const totalAssets = assets.reduce((sum, item) => sum + item.value, 0);
+  
+  // Debts
+  const debtsList = userData?.debts || [];
+  const totalDebt = debtsList.reduce((sum, d) => sum + d.amount, 0);
+
+  const netWorth = totalAssets - totalDebt;
 
   return (
     <PhoneShell dark={dark}>
-      <div className="px-5 pb-8 pt-8 font-sans">
+      <div className="px-5 pb-8 pt-8 font-sans relative">
         <Header 
           title="Net Worth" 
           subtitle="Financial Standing" 
@@ -55,7 +91,7 @@ export function NetWorthScreen({ setActiveScreen }) {
 
         <MetricHero 
           title="Total Net Worth" 
-          value={formatMoney(currentBalance, currency)} 
+          value={formatMoney(netWorth, currency)} 
           subValue={
             <div className="flex items-center gap-1 font-bold">
               {diff >= 0 ? <ArrowUpRight className="h-4 w-4 text-emerald-400" /> : <div className="h-4 w-4 bg-red-400 rounded-full" />}
@@ -91,7 +127,7 @@ export function NetWorthScreen({ setActiveScreen }) {
               <CreditCard className="h-7 w-7" />
             </div>
             <p className={cn("text-[10px] font-black uppercase tracking-widest leading-none", dark ? "text-slate-500" : "text-slate-400")}>Debt</p>
-            <p className={cn("mt-2 text-2xl font-black tracking-tight leading-none", dark ? "text-white" : "text-slate-900")}>{formatMoney(0, currency)}</p>
+            <p className={cn("mt-2 text-2xl font-black tracking-tight leading-none", dark ? "text-white" : "text-slate-900")}>{formatMoney(totalDebt, currency)}</p>
           </div>
         </div>
 
@@ -178,6 +214,45 @@ export function NetWorthScreen({ setActiveScreen }) {
             </div>
           </SectionCard>
 
+          <SectionCard title="Liabilities & Debts" dark={dark}>
+            <div className="space-y-4 pt-2">
+              {debtsList.map((item, idx) => (
+                <div key={idx} className={cn(
+                  "group flex items-center justify-between rounded-[2.5rem] p-5 border transition-all duration-300 shadow-sm",
+                  dark ? "bg-white/5 border-white/5 shadow-black/20" : "bg-slate-50 border-slate-100"
+                )}>
+                  <div className="flex items-center gap-4">
+                    <div className={cn(
+                      "flex h-14 w-14 items-center justify-center rounded-2xl shadow-xl transition-all duration-300 border",
+                      dark ? "bg-slate-900 border-white/5 text-red-400 shadow-black/40" : "bg-white border-red-100 text-red-500 shadow-slate-200/50"
+                    )}>
+                      <CreditCard className="h-7 w-7" />
+                    </div>
+                    <div>
+                      <p className={cn("font-black tracking-tight leading-none", dark ? "text-white" : "text-slate-900")}>{item.name}</p>
+                      <p className={cn("mt-1 text-[10px] font-black uppercase tracking-widest", dark ? "text-slate-500" : "text-slate-400")}>Loan / Debt</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                     <p className={cn("text-xl font-black tracking-tighter leading-none text-red-500", dark ? "text-red-400" : "text-red-500")}>-{formatMoney(item.amount, currency)}</p>
+                     <p className="mt-1 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Active</p>
+                  </div>
+                </div>
+              ))}
+              
+              <button 
+                onClick={() => setIsAddingDebt(true)}
+                className={cn(
+                  "w-full mt-4 flex items-center justify-center gap-4 rounded-[2rem] border p-7 text-xs font-black uppercase tracking-widest transition-all duration-300 group shadow-lg active:scale-95",
+                  dark ? "bg-red-600/10 border-red-500/20 text-red-400 hover:bg-red-600/20" : "bg-red-50/50 border-red-100 text-red-600 hover:bg-red-50 cursor-pointer"
+                )}
+              >
+                <Plus className="h-5 w-5 transition-transform group-hover:rotate-90 group-hover:scale-125" />
+                Add Debt / Loan
+              </button>
+            </div>
+          </SectionCard>
+
           <div className={cn(
              "rounded-[3.5rem] p-8 relative overflow-hidden group shadow-2xl transition-all duration-500",
              dark ? "bg-slate-900 shadow-black/60" : "bg-slate-900 shadow-slate-900/40"
@@ -202,6 +277,74 @@ export function NetWorthScreen({ setActiveScreen }) {
              </div>
           </div>
         </div>
+
+        {/* Add Debt Overlay */}
+        {isAddingDebt && (
+          <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm transition-all duration-500 p-4 sm:p-0">
+            <div className={cn(
+              "w-full max-w-md animate-slide-up rounded-t-[3.5rem] p-8 shadow-2xl transition-all duration-500 border-t",
+              dark ? "bg-[#0f172a] border-white/5 shadow-black/80" : "bg-white border-slate-100 shadow-slate-200"
+            )}>
+              <div className="flex items-center justify-between mb-8">
+                <h3 className={cn("text-2xl font-black tracking-tight", dark ? "text-white" : "text-slate-900")}>Add Liability</h3>
+                <button 
+                  onClick={() => setIsAddingDebt(false)}
+                  className={cn("h-12 w-12 rounded-full flex items-center justify-center transition-all", dark ? "bg-white/5 text-slate-400 hover:bg-white/10" : "bg-slate-50 text-slate-500 hover:bg-slate-100")}
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
+
+              <div className="space-y-6">
+                <div>
+                  <label className={cn("text-xs font-black uppercase tracking-widest ml-1 mb-2 block", dark ? "text-slate-500" : "text-slate-400")}>Debt Name</label>
+                  <div className="relative">
+                    <Target className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                    <input 
+                      type="text" 
+                      placeholder="e.g. Student Loan, Mortgage" 
+                      value={debtName}
+                      onChange={(e) => setDebtName(e.target.value)}
+                      className={cn(
+                        "w-full rounded-[1.75rem] border px-14 py-5 text-sm font-bold outline-none transition-all shadow-sm",
+                        dark ? "bg-white/5 border-white/5 text-white focus:border-red-500/50" : "bg-slate-50 border-slate-100 text-slate-900 focus:border-red-500/50"
+                      )}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className={cn("text-xs font-black uppercase tracking-widest ml-1 mb-2 block", dark ? "text-slate-500" : "text-slate-400")}>Outstanding Balance</label>
+                  <div className="relative">
+                    <DollarSign className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                    <input 
+                      type="number" 
+                      placeholder="0.00" 
+                      value={debtAmount}
+                      onChange={(e) => setDebtAmount(e.target.value)}
+                      className={cn(
+                        "w-full rounded-[1.75rem] border px-14 py-5 text-sm font-bold outline-none transition-all shadow-sm",
+                        dark ? "bg-white/5 border-white/5 text-white focus:border-red-500/50" : "bg-slate-50 border-slate-100 text-slate-900 focus:border-red-500/50"
+                      )}
+                    />
+                  </div>
+                </div>
+
+                <button 
+                  onClick={handleAddDebt}
+                  disabled={addingLoading}
+                  className={cn(
+                    "w-full rounded-[2.25rem] px-8 py-5 text-lg font-black uppercase tracking-widest text-white shadow-2xl transition-all hover:scale-[1.02] active:scale-100 flex items-center justify-center gap-3 mt-4",
+                    dark ? "bg-red-600 shadow-red-900/40" : "bg-red-600 shadow-red-400/40",
+                    addingLoading && "opacity-80"
+                  )}
+                >
+                  {addingLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : "Save Liability"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <BottomNav active="networth" setActiveScreen={setActiveScreen} dark={dark} />
       </div>

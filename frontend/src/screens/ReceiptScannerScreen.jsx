@@ -40,7 +40,11 @@ export function ReceiptScannerScreen({ setActiveScreen, dark = false, navParams,
     try {
       setError("");
       const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: "environment" } 
+        video: { 
+          facingMode: "environment",
+          width: { ideal: 1920 },
+          height: { ideal: 1080 }
+        } 
       });
       streamRef.current = stream;
       setShowCamera(true);
@@ -68,7 +72,31 @@ export function ReceiptScannerScreen({ setActiveScreen, dark = false, navParams,
       canvas.height = video.videoHeight;
       const ctx = canvas.getContext("2d");
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      const dataUrl = canvas.toDataURL("image/jpeg");
+
+      // OCR Image Preprocessing: Grayscale and High Contrast
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imageData.data;
+      
+      for (let i = 0; i < data.length; i += 4) {
+        // Luminance formula for accurate grayscale
+        const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+        
+        // High contrast boost to make text stand out against background
+        const contrast = 2.0; 
+        const intercept = 128 * (1 - contrast);
+        let finalColor = gray * contrast + intercept;
+        
+        // Clamp and threshold
+        finalColor = Math.min(255, Math.max(0, finalColor));
+        
+        data[i] = finalColor;     // r
+        data[i + 1] = finalColor; // g
+        data[i + 2] = finalColor; // b
+      }
+      
+      ctx.putImageData(imageData, 0, 0);
+
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
       setImage(dataUrl);
       stopCamera();
     }

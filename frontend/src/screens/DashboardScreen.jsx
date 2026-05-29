@@ -41,6 +41,43 @@ export function DashboardScreen({ setActiveScreen }) {
   const monthlyTrends = getMonthlyTrends(transactions);
   const hasTransactions = transactions.length > 0;
 
+  // Financial Health Score Calculation
+  const debtsList = userData?.debts || [];
+  const totalDebt = debtsList.reduce((sum, d) => sum + d.amount, 0);
+  let healthScore = 50; // Base score
+  
+  if (income > 0) {
+    const savingsRate = Math.max(0, (income - expenses) / income);
+    healthScore += Math.min(30, savingsRate * 100);
+  }
+  if (balance > 0) {
+    const debtRatio = totalDebt / balance;
+    healthScore -= Math.min(20, debtRatio * 50);
+  }
+  const avgGoalProgress = goals.length > 0 
+    ? goals.reduce((acc, g) => acc + Math.min(1, g.current / g.target), 0) / goals.length 
+    : 0;
+  healthScore += Math.min(20, avgGoalProgress * 20);
+  
+  healthScore = Math.min(100, Math.max(0, Math.round(healthScore)));
+  
+  let healthStatus = "Needs Attention";
+  let healthColor = "text-red-500";
+  let healthBar = "bg-red-500";
+  if (healthScore >= 80) {
+    healthStatus = "Excellent";
+    healthColor = "text-emerald-500";
+    healthBar = "bg-emerald-500";
+  } else if (healthScore >= 60) {
+    healthStatus = "Good";
+    healthColor = "text-blue-500";
+    healthBar = "bg-blue-500";
+  } else if (healthScore >= 40) {
+    healthStatus = "Fair";
+    healthColor = "text-amber-500";
+    healthBar = "bg-amber-500";
+  }
+
   return (
     <PhoneShell dark={dark}>
       <div className="px-5 pb-6 pt-6 font-sans">
@@ -66,6 +103,35 @@ export function DashboardScreen({ setActiveScreen }) {
             </div>
           }
         />
+
+        {/* Financial Health Score */}
+        <div className={cn(
+          "mt-6 rounded-[2.5rem] border p-6 shadow-xl transition-all hover:scale-[1.02]",
+          dark ? "bg-slate-800 border-slate-700" : "bg-white border-slate-100"
+        )}>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <p className={cn("text-[10px] font-black uppercase tracking-widest", dark ? "text-slate-400" : "text-slate-500")}>Financial Health</p>
+              <h3 className={cn("mt-1 text-2xl font-black tracking-tight", healthColor)}>{healthScore} / 100</h3>
+            </div>
+            <div className={cn(
+              "px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest border",
+              dark ? "bg-slate-900 border-white/5" : "bg-slate-50 border-slate-100",
+              healthColor
+            )}>
+              {healthStatus}
+            </div>
+          </div>
+          <div className={cn(
+            "h-3 w-full rounded-full p-0.5 border shadow-inner overflow-hidden",
+            dark ? "bg-slate-900 border-slate-700" : "bg-slate-100 border-slate-200"
+          )}>
+            <div 
+              className={cn("h-full rounded-full transition-all duration-1000 shadow-lg", healthBar)} 
+              style={{ width: `${healthScore}%` }} 
+            />
+          </div>
+        </div>
 
         <div className="mt-6">
           <h3 className={cn("mb-4 text-2xl font-black tracking-tight", dark ? "text-white" : "text-slate-900")}>Quick Actions</h3>

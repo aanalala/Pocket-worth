@@ -22,8 +22,8 @@ export function useUserData() {
           if (docSnap.exists()) {
             const data = docSnap.data();
             // Default settings if they don't exist
-            if (data.isDarkMode === undefined || data.currency === undefined) {
-              setDoc(userDocRef, { isDarkMode: false, currency: "USD" }, { merge: true });
+                        if (data.isDarkMode === undefined || data.currency === undefined) {
+              setDoc(userDocRef, { isDarkMode: false, currency: "NPR" }, { merge: true });
             }
             setUserData(data);
           } else {
@@ -36,7 +36,7 @@ export function useUserData() {
               income: 0,
               expenses: 0,
               isDarkMode: false,
-              currency: "USD",
+              currency: "NPR",
               createdAt: new Date().toISOString()
             };
             setDoc(userDocRef, initialData);

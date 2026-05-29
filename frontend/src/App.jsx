@@ -8,11 +8,15 @@ import { CategoriesScreen } from "./screens/CategoriesScreen";
 import { SavingsTrackerScreen } from "./screens/SavingsTrackerScreen";
 import { NetWorthScreen } from "./screens/NetWorthScreen";
 import { SettingsScreen } from "./screens/SettingsScreen";
+import { SettingsScreenEnhanced } from "./screens/SettingsScreenEnhanced";
 import { ReceiptScannerScreen } from "./screens/ReceiptScannerScreen";
 import { ChatbotScreen } from "./screens/ChatbotScreen";
+import { AiAdvisorEnhancedScreen } from "./screens/AiAdvisorEnhancedScreen";
 import { SubscriptionTrackerScreen } from "./screens/SubscriptionTrackerScreen";
+import { SubscriptionTrackerEnhancedScreen } from "./screens/SubscriptionTrackerEnhancedScreen";
 import { BillReminderScreen } from "./screens/BillReminderScreen";
 import { BudgetGoalsScreen } from "./screens/BudgetGoalsScreen";
+import { BudgetGoalsEnhancedScreen } from "./screens/BudgetGoalsEnhancedScreen";
 import { CalendarScreen } from "./screens/CalendarScreen";
 import { auth } from "./firebase";
 import { onAuthStateChanged } from "firebase/auth";
@@ -68,7 +72,7 @@ export default function App() {
         return <InsightsScreen setActiveScreen={setActiveScreen} dark={dark} />;
       case "budgets":
       case "categories":
-        return <BudgetGoalsScreen setActiveScreen={setActiveScreen} dark={dark} />;
+        return <BudgetGoalsEnhancedScreen setActiveScreen={setActiveScreen} dark={dark} />;
       case "savings":
         return <SavingsTrackerScreen setActiveScreen={setActiveScreen} dark={dark} />;
       case "networth":
@@ -76,9 +80,9 @@ export default function App() {
       case "ocr":
         return <ReceiptScannerScreen setActiveScreen={setActiveScreen} dark={dark} navParams={navParams} setNavParams={setNavParams} />;
       case "chatbot":
-        return <ChatbotScreen setActiveScreen={setActiveScreen} dark={dark} />;
+        return <AiAdvisorEnhancedScreen setActiveScreen={setActiveScreen} dark={dark} />;
       case "subscriptions":
-        return <SubscriptionTrackerScreen setActiveScreen={setActiveScreen} dark={dark} />;
+        return <SubscriptionTrackerEnhancedScreen setActiveScreen={setActiveScreen} dark={dark} />;
       case "bills":
         return <BillReminderScreen setActiveScreen={setActiveScreen} dark={dark} />;
       case "calendar":
@@ -86,7 +90,7 @@ export default function App() {
       case "settings":
       case "settingsLight":
       case "settingsDark":
-        return <SettingsScreen setActiveScreen={setActiveScreen} dark={dark} />;
+        return <SettingsScreenEnhanced setActiveScreen={setActiveScreen} dark={dark} />;
       default:
         return <DashboardScreen setActiveScreen={setActiveScreen} dark={dark} />;
     }
